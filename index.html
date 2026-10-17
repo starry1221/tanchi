@@ -73,7 +73,7 @@
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 9px; padding: 26px; text-align: center;
+    gap: 7px; padding: 22px; text-align: center;
     background: rgba(250,252,255,.9);
     -webkit-backdrop-filter: blur(7px);
     backdrop-filter: blur(7px);
@@ -96,13 +96,12 @@
   }
   .ov-badge.win { background: #ecfdf5; color: #059669; border-color: #c7f0e0; }
 
-  .ov-diff {
-    display: flex; flex-wrap: wrap; justify-content: center;
-    gap: 8px; margin-top: 10px;
-  }
+  .ov-pick { display: flex; flex-direction: column; align-items: center; gap: 3px; margin-top: 5px; }
+  .ov-pick-row { display: flex; align-items: center; justify-content: center; gap: 7px; flex-wrap: wrap; }
+  .ov-pick-k { font-size: 10.5px; letter-spacing: .1em; color: #a3b0c4; }
   .pill {
-    font: inherit; font-size: 13px; font-weight: 500;
-    cursor: pointer; padding: 8px 18px; border-radius: 999px;
+    font: inherit; font-size: 12.5px; font-weight: 500;
+    cursor: pointer; padding: 6px 14px; border-radius: 999px;
     border: 1px solid #e6ecf5; background: #fff; color: #62748f;
     transition: border-color .18s, color .18s, background .18s, box-shadow .18s;
   }
@@ -112,7 +111,7 @@
     border-color: transparent; color: #fff;
     box-shadow: 0 6px 14px -8px rgba(16,185,129,.95);
   }
-  .ov-diff-tip { font-size: 11.5px; color: #93a2b8; margin-top: 2px; min-height: 16px; }
+  .ov-pick-tip { font-size: 11px; color: #93a2b8; min-height: 15px; line-height: 1.5; }
 
   .btn {
     font: inherit; cursor: pointer; border: 1px solid transparent;
@@ -159,6 +158,69 @@
   .switch input:checked { background: #10b981; }
   .switch input:checked::after { transform: translateX(14px); }
 
+  /* ---------- 阶段与连击 ---------- */
+  .chips { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .chips .chip {
+    font-size: 11px; font-weight: 600; letter-spacing: .02em;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+    background: #eef4fb; color: #5b6f8c; border: 1px solid #e2eaf5;
+    transition: background .25s, color .25s, border-color .25s, box-shadow .25s;
+  }
+  .chips .chip.hot {
+    background: linear-gradient(180deg, #fbbf24, #f59e0b);
+    color: #fff; border-color: transparent;
+    box-shadow: 0 4px 10px -6px rgba(245,158,11,.95);
+  }
+
+  .combo {
+    display: flex; align-items: center; gap: 8px;
+    height: 20px; margin: -4px 2px 10px;
+    font-size: 11.5px; color: #8b9ab1;
+    opacity: 0; transition: opacity .22s;
+  }
+  .combo.on { opacity: 1; }
+  .combo .cv {
+    font-weight: 800; font-size: 13px; color: #94a3b8;
+    font-variant-numeric: tabular-nums; transition: color .2s;
+  }
+  .combo .cv.lv1 { color: #10b981; }
+  .combo .cv.lv2 { color: #f59e0b; }
+  .combo .cv.lv3 { color: #ef4444; }
+  .combo .ct {
+    flex: 1; height: 4px; border-radius: 2px;
+    background: #e6ecf5; overflow: hidden;
+  }
+  .combo .ct i {
+    display: block; height: 100%; width: 100%;
+    transform-origin: left center;
+    background: linear-gradient(90deg, #6ee7b7, #10b981);
+  }
+  .combo .cn {
+    min-width: 14px; text-align: right;
+    font-variant-numeric: tabular-nums; color: #93a2b8;
+  }
+
+  .banner {
+    position: absolute; left: 0; right: 0; top: 15%;
+    z-index: 2; text-align: center; pointer-events: none;
+    opacity: 0; transform: translateY(-10px);
+    transition: opacity .34s ease, transform .34s ease;
+  }
+  .banner.show { opacity: 1; transform: translateY(0); }
+  .banner b {
+    display: inline-block; padding: 6px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 700; letter-spacing: .08em;
+    color: #fff; background: rgba(22,35,58,.84);
+    box-shadow: 0 10px 24px -14px rgba(16,35,58,.95);
+  }
+  .banner span { display: block; margin-top: 8px; }
+  .banner span em {
+    font-style: normal; font-size: 11.5px; color: #5b6f8c;
+    background: rgba(255,255,255,.94);
+    padding: 3px 10px; border-radius: 999px;
+    box-shadow: 0 2px 8px -4px rgba(16,35,58,.35);
+  }
+
   .hint {
     margin: 12px 2px 0; font-size: 11.5px; line-height: 1.7;
     color: #93a2b8; text-align: center;
@@ -174,7 +236,10 @@
   <div class="title">
     <span class="dot"></span>
     <h1>贪吃蛇</h1>
-    <span id="ui-diff">普通模式</span>
+    <span class="chips">
+      <span id="ui-diff" class="chip">普通模式</span>
+      <span id="ui-stage" class="chip">阶段 1</span>
+    </span>
   </div>
 
   <div class="hud">
@@ -183,8 +248,16 @@
     <div class="stat"><span class="label">长度</span><strong id="ui-len">3</strong></div>
   </div>
 
+  <div class="combo" id="combo-row">
+    <span>连击</span>
+    <span class="cv" id="ui-combo">×1</span>
+    <span class="ct"><i id="ui-combo-bar"></i></span>
+    <span class="cn" id="ui-combo-n">0</span>
+  </div>
+
   <div class="stage" id="stage">
     <canvas id="game"></canvas>
+    <div class="banner" id="banner"></div>
     <div class="overlay" id="overlay"></div>
   </div>
 
@@ -213,6 +286,58 @@
   var DIFF_ORDER = ['easy', 'normal', 'hard'];
   var DEATH_TEXT = { wall: '撞墙了', self: '咬到自己了', rock: '撞上障碍了' };
 
+  // 模式：决定速度怎么变化（难度只负责基础速度）
+  var MODES = {
+    classic: { label: '经典', desc: '速度恒定，按难度来' },
+    endless: { label: '无尽', desc: '固定普通速度，永不加速；障碍密度仍按难度走' },
+    rush:    { label: '急速', desc: '每吃一个快一点，最快 58ms' }
+  };
+  var MODE_ORDER = ['classic', 'endless', 'rush'];
+  var ENDLESS_INTERVAL = 145;   // 无尽模式固定用普通速度
+  var RUSH_STEP = 2;            // 急速：每吃一个苹果少 2ms
+  var RUSH_FLOOR = 58;          // 急速的速度下限，再快就没法操作了
+
+  // 阶段表：每吃满 at 个苹果进入该阶段
+  // every = 每吃几个苹果落一块障碍（0 表示不落）；mines = 地雷占比倍率（0 表示不出地雷）；capBonus = 障碍上限加成
+  var STAGES = [
+    { at: 0,  name: '热身', hint: '干净棋盘，先找回手感',     every: 0, mines: 0,    capBonus: 0 },
+    { at: 15, name: '落石', hint: '石头开始落下，绕开它',     every: 4, mines: 0,    capBonus: 0 },
+    { at: 30, name: '布雷', hint: '地雷混了进来，看清再走',   every: 3, mines: 1,    capBonus: 2 },
+    { at: 45, name: '加压', hint: '落石变快，缝隙更窄了',     every: 2, mines: 1.15, capBonus: 4 },
+    { at: 60, name: '失控', hint: '别停，一路冲下去',         every: 2, mines: 1.3,  capBonus: 7 }
+  ];
+
+  var COMBO_WINDOW = 5000;   // 连击窗口：5 秒内吃到下一个苹果才算接上
+  var NEAR_GAP = 260;        // 擦边奖励的最短间隔，避免贴着障碍滑行刷分
+
+  // 连击数 → 分数倍率
+  function comboMult(n) {
+    if (n >= 8) return 3;
+    if (n >= 5) return 2;
+    if (n >= 3) return 1.5;
+    return 1;
+  }
+
+  function stageIndex(eatCount) {
+    var i = 0;
+    for (var k = STAGES.length - 1; k >= 0; k--) {
+      if (eatCount >= STAGES[k].at) { i = k; break; }
+    }
+    return i;
+  }
+
+  // 基础间隔：无尽固定普通速度，其余按难度
+  function baseInterval() {
+    return state.mode === 'endless' ? ENDLESS_INTERVAL : DIFF[state.difficulty].interval;
+  }
+
+  // 实际间隔：急速模式每吃一个就往下压一点
+  function speedFor(eatCount) {
+    var base = baseInterval();
+    if (state.mode !== 'rush') return base;
+    return Math.max(RUSH_FLOOR, base - (eatCount || 0) * RUSH_STEP);
+  }
+
   var canvas = document.getElementById('game');
   var ctx = canvas.getContext('2d');
   var stage = document.getElementById('stage');
@@ -221,6 +346,12 @@
   var uiBest = document.getElementById('ui-best');
   var uiLen = document.getElementById('ui-len');
   var uiDiff = document.getElementById('ui-diff');
+  var uiStage = document.getElementById('ui-stage');
+  var comboRow = document.getElementById('combo-row');
+  var uiCombo = document.getElementById('ui-combo');
+  var uiComboBar = document.getElementById('ui-combo-bar');
+  var uiComboN = document.getElementById('ui-combo-n');
+  var banner = document.getElementById('banner');
   var btnToggle = document.getElementById('btn-toggle');
   var chkWrap = document.getElementById('chk-wrap');
   var chkSound = document.getElementById('chk-sound');
@@ -238,6 +369,7 @@
     acc: 0,
     interval: 145,
     difficulty: 'normal',
+    mode: 'classic',        // classic | endless | rush
     wrap: false,
     sound: true,
     particles: [],
@@ -246,7 +378,15 @@
     pendingGrow: 0,         // 待生长节数（吃钻石后逐节长出）
     invincibleUntil: 0,     // 无敌截止时间戳
     eatCount: 0,            // 已吃苹果数，用于触发障碍生成
-    floaters: []            // 画面飘字
+    floaters: [],           // 画面飘字
+    stageIdx: 0,            // 当前阶段索引
+    lastSpawnAt: 0,         // 上次落石时的 eatCount
+    combo: 0,               // 当前连击数
+    comboAt: 0,             // 上次吃苹果的时间戳
+    maxCombo: 0,            // 本局最高连击
+    nearMiss: 0,            // 擦边次数
+    lastNearMissAt: 0,      // 上次擦边的时间戳
+    nearFx: []              // 擦边光环特效
   };
   var overlayKind = 'idle';
 
@@ -254,13 +394,15 @@
     state.best = Number(localStorage.getItem('snake.best.v1') || 0) || 0;
     var savedDiff = localStorage.getItem('snake.diff.v1');
     if (savedDiff && DIFF[savedDiff]) state.difficulty = savedDiff;
+    var savedMode = localStorage.getItem('snake.mode.v1');
+    if (savedMode && MODES[savedMode]) state.mode = savedMode;
   } catch (e) {
     state.best = 0;
   }
   chkWrap.checked = false;
   chkSound.checked = true;
   uiBest.textContent = state.best;
-  uiDiff.textContent = DIFF[state.difficulty].label + '模式';
+  updateDiffLabel();
 
   /* ---------- canvas 尺寸 ---------- */
   function fitCanvas() {
@@ -335,7 +477,7 @@
     state.dir = { x: 1, y: 0 };
     state.queue = [];
     state.score = 0;
-    state.interval = DIFF[state.difficulty].interval;
+    state.interval = speedFor(0);
     state.acc = 0;
     state.win = false;
     state.particles = [];
@@ -345,13 +487,30 @@
     state.invincibleUntil = 0;
     state.eatCount = 0;
     state.floaters = [];
+    state.stageIdx = 0;
+    state.lastSpawnAt = 0;
+    state.combo = 0;
+    state.comboAt = 0;
+    state.maxCombo = 0;
+    state.nearMiss = 0;
+    state.lastNearMissAt = 0;
+    state.nearFx = [];
+    clearBanner();
+    resetComboDom();
     placeFood();
     updateHUD();
     updateDiffLabel();
   }
 
   function updateDiffLabel() {
-    uiDiff.textContent = DIFF[state.difficulty].label + '模式';
+    var m = state.mode;
+    if (m === 'endless') {
+      uiDiff.textContent = '无尽 · ' + ENDLESS_INTERVAL + 'ms';
+    } else if (m === 'rush') {
+      uiDiff.textContent = DIFF[state.difficulty].label + ' · 急速 ' + state.interval + 'ms';
+    } else {
+      uiDiff.textContent = DIFF[state.difficulty].label + '模式';
+    }
   }
 
   function setDifficulty(key) {
@@ -359,11 +518,98 @@
     state.difficulty = key;
     try { localStorage.setItem('snake.diff.v1', key); } catch (e) {}
     if (state.phase === 'idle' || state.phase === 'over') {
-      state.interval = DIFF[key].interval;
+      state.interval = speedFor(0);
     }
     updateDiffLabel();
     showOverlay(overlayKind);
     beep(620, 0.05, 'sine', 0.1);
+  }
+
+  function setMode(key) {
+    if (!MODES[key]) return;
+    state.mode = key;
+    try { localStorage.setItem('snake.mode.v1', key); } catch (e) {}
+    if (state.phase === 'idle' || state.phase === 'over') {
+      state.interval = speedFor(0);
+    }
+    updateDiffLabel();
+    showOverlay(overlayKind);
+    beep(660, 0.05, 'sine', 0.1);
+  }
+
+  /* ---------- 阶段推进 ---------- */
+  var bannerTimer = 0;
+
+  function showBanner(idx) {
+    var st = STAGES[idx];
+    banner.innerHTML = '<b>阶段 ' + (idx + 1) + ' · ' + st.name + '</b>' +
+                       '<span><em>' + st.hint + '</em></span>';
+    banner.classList.add('show');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(function () { banner.classList.remove('show'); }, 2400);
+  }
+
+  function clearBanner() {
+    clearTimeout(bannerTimer);
+    banner.classList.remove('show');
+  }
+
+  function enterStage(idx) {
+    state.stageIdx = idx;
+    showBanner(idx);
+    beep(760, 0.07, 'triangle', 0.14);
+    setTimeout(function () { beep(1010, 0.09, 'triangle', 0.13); }, 90);
+    updateHUD();
+  }
+
+  /* ---------- 连击 UI ---------- */
+  var comboDom = { on: null, txt: '', lv: '', n: '' };
+
+  function resetComboDom() {
+    comboDom = { on: null, txt: '', lv: '', n: '' };
+    comboRow.classList.remove('on');
+    uiComboBar.style.transform = 'scaleX(0)';
+  }
+
+  function comboBarColor(lv) {
+    if (lv === 'lv3') return 'linear-gradient(90deg,#fca5a5,#ef4444)';
+    if (lv === 'lv2') return 'linear-gradient(90deg,#fcd34d,#f59e0b)';
+    if (lv === 'lv1') return 'linear-gradient(90deg,#6ee7b7,#10b981)';
+    return 'linear-gradient(90deg,#cbd5e1,#94a3b8)';
+  }
+
+  // 每帧刷新连击条：只在数值变化时写 DOM，避免无谓的重排
+  function updateComboUI(now) {
+    if (state.phase === 'playing' && state.combo > 0 && now - state.comboAt > COMBO_WINDOW) {
+      state.combo = 0;
+    }
+    var active = state.combo > 0 && (state.phase === 'playing' || state.phase === 'paused');
+    if (active !== comboDom.on) {
+      comboRow.classList.toggle('on', active);
+      comboDom.on = active;
+    }
+    if (!active) return;
+
+    var mult = comboMult(state.combo);
+    var lv = mult >= 3 ? 'lv3' : (mult >= 2 ? 'lv2' : (mult >= 1.5 ? 'lv1' : ''));
+    var txt = '×' + mult;
+    if (txt !== comboDom.txt) { uiCombo.textContent = txt; comboDom.txt = txt; }
+    if (lv !== comboDom.lv) {
+      uiCombo.className = 'cv' + (lv ? ' ' + lv : '');
+      uiComboBar.style.background = comboBarColor(lv);
+      comboDom.lv = lv;
+    }
+    var n = String(state.combo);
+    if (n !== comboDom.n) { uiComboN.textContent = n; comboDom.n = n; }
+
+    var p = 1 - (now - state.comboAt) / COMBO_WINDOW;
+    uiComboBar.style.transform = 'scaleX(' + Math.max(0, Math.min(1, p)).toFixed(3) + ')';
+  }
+
+  // 这一格四邻是否贴着障碍
+  function nearRock(x, y) {
+    return rockAt(x + 1, y) >= 0 || rockAt(x - 1, y) >= 0 ||
+           rockAt(x, y + 1) >= 0 || rockAt(x, y - 1) >= 0;
   }
 
   function occupiedMap() {
@@ -402,14 +648,16 @@
 
   function spawnRock() {
     var cfg = DIFF[state.difficulty];
-    if (state.rocks.length >= cfg.rocks) return;
+    var st = STAGES[state.stageIdx];
+    if (state.rocks.length >= cfg.rocks + st.capBonus) return;
     var cells = freeCells(true);
     if (!cells.length) return;
     var c = cells[Math.floor(Math.random() * cells.length)];
+    var mineRate = Math.min(0.85, cfg.mineRate * st.mines);
     state.rocks.push({
       x: c.x,
       y: c.y,
-      type: Math.random() < cfg.mineRate ? 'mine' : 'rock',
+      type: Math.random() < mineRate ? 'mine' : 'rock',
       seed: Math.random()
     });
   }
@@ -431,10 +679,10 @@
     return -1;
   }
 
-  function floatText(gx, gy, text, color) {
+  function floatText(gx, gy, text, color, dy) {
     state.floaters.push({
       x: gx * CELL + CELL / 2,
-      y: gy * CELL + CELL / 2,
+      y: gy * CELL + CELL / 2 + (dy || 0),
       text: text,
       color: color,
       life: 1
@@ -520,16 +768,56 @@
       }
     }
 
+    // 擦边：蛇头刚贴上一块障碍，给一点奖励（无敌时是直接撞碎，不算擦边）
+    if (!invincible) {
+      var oldHead = state.prev[0] || head;
+      if (nearRock(nx, ny) && !nearRock(oldHead.x, oldHead.y) &&
+          now - state.lastNearMissAt > NEAR_GAP) {
+        state.lastNearMissAt = now;
+        state.nearMiss += 1;
+        state.score += 2;
+        state.nearFx.push({ x: nx, y: ny, at: now });
+        floatText(nx, ny, '+2', '#0891b2');
+        beep(1320, 0.045, 'sine', 0.1);
+        syncBest();
+      }
+    }
+
     state.snake.unshift({ x: nx, y: ny });
 
     if (willEat) {
-      state.score += 10;
+      var prevMult = comboMult(state.combo);
+      state.combo = (now - state.comboAt <= COMBO_WINDOW) ? state.combo + 1 : 1;
+      state.comboAt = now;
+      if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+
+      var mult = comboMult(state.combo);
+      var gain = Math.round(10 * mult);
+      state.score += gain;
       state.eatCount += 1;
+      if (state.mode === 'rush') state.interval = speedFor(state.eatCount);
+
       burst(nx, ny);
       beep(680, 0.07, 'triangle', 0.18);
+      floatText(nx, ny, mult > 1 ? '+' + gain + ' ×' + mult : '+10',
+                mult > 1 ? '#d97706' : '#0f766e');
+      if (mult > prevMult) {
+        beep(1180, 0.08, 'triangle', 0.16);
+        floatText(nx, ny, '连击 ×' + mult, '#f59e0b', -15);
+      }
       syncBest();
       placeFood();
-      if (state.eatCount % 3 === 0) spawnRock();
+
+      // 推进阶段
+      var si = stageIndex(state.eatCount);
+      if (si !== state.stageIdx) enterStage(si);
+
+      // 按当前阶段的节奏落障碍
+      var st = STAGES[state.stageIdx];
+      if (st.every > 0 && state.eatCount - state.lastSpawnAt >= st.every) {
+        spawnRock();
+        state.lastSpawnAt = state.eatCount;
+      }
       if (!state.bonus && state.eatCount >= 2 && Math.random() < 0.32) spawnBonus();
       updateHUD(true);
       if (state.win) return die('win');
@@ -623,6 +911,9 @@
     uiScore.textContent = state.score;
     uiBest.textContent = state.best;
     uiLen.textContent = state.snake.length;
+    uiStage.textContent = '阶段 ' + (state.stageIdx + 1);
+    uiStage.classList.toggle('hot', state.stageIdx >= 2);
+    updateDiffLabel();
     if (bump) {
       uiScore.classList.add('bump');
       setTimeout(function () { uiScore.classList.remove('bump'); }, 220);
@@ -632,16 +923,31 @@
   /* ---------- overlay ---------- */
   function hideOverlay() { overlay.classList.add('hide'); }
 
-  function diffHtml() {
-    var pills = '';
-    for (var i = 0; i < DIFF_ORDER.length; i++) {
-      var key = DIFF_ORDER[i];
-      var on = key === state.difficulty ? ' active' : '';
-      pills += '<button type="button" class="pill' + on + '" data-diff="' + key + '">' +
-               DIFF[key].label + '</button>';
+  function pillsHtml(kind, order, meta, current) {
+    var s = '';
+    for (var i = 0; i < order.length; i++) {
+      var key = order[i];
+      var on = key === current ? ' active' : '';
+      s += '<button type="button" class="pill' + on + '" data-' + kind + '="' + key + '">' +
+           meta[key].label + '</button>';
     }
-    return '<div class="ov-diff">' + pills + '</div>' +
-           '<div class="ov-diff-tip">' + DIFF[state.difficulty].desc + '</div>';
+    return s;
+  }
+
+  // 难度 + 模式两组胶囊
+  function diffHtml() {
+    return '<div class="ov-pick">' +
+      '<div class="ov-pick-row"><span class="ov-pick-k">难度</span>' +
+        pillsHtml('diff', DIFF_ORDER, DIFF, state.difficulty) +
+      '</div>' +
+      '<div class="ov-pick-tip">' + DIFF[state.difficulty].desc + '</div>' +
+    '</div>' +
+    '<div class="ov-pick">' +
+      '<div class="ov-pick-row"><span class="ov-pick-k">模式</span>' +
+        pillsHtml('mode', MODE_ORDER, MODES, state.mode) +
+      '</div>' +
+      '<div class="ov-pick-tip">' + MODES[state.mode].desc + '</div>' +
+    '</div>';
   }
 
   function showOverlay(kind) {
@@ -650,8 +956,7 @@
     if (kind === 'idle') {
       overlay.innerHTML =
         '<div class="ov-title">贪吃蛇</div>' +
-        '<div class="ov-sub">吃苹果加分。石头与地雷会陆续出现，撞上即结束<br>' +
-        '钻石变长 · 星星无敌 · 炸弹清场</div>' +
+        '<div class="ov-sub">5 秒内连吃叠倍率 · 贴障碍擦身加分 · 每 15 个苹果进一阶段</div>' +
         diffHtml() +
         '<button class="btn primary" type="button" data-act="start">开始游戏</button>' +
         '<div class="ov-tips">方向键 / WASD · 空格暂停<br>无敌只挡障碍，撞墙照样结束</div>';
@@ -665,7 +970,9 @@
         '<div class="ov-badge">' + (DEATH_TEXT[state.deathReason] || '撞到了') + '</div>' +
         '<div class="ov-title small">游戏结束</div>' +
         '<div class="ov-score">本局得分 <b>' + state.score + '</b></div>' +
-        '<div class="ov-sub">最高分 ' + state.best + '</div>' +
+        '<div class="ov-sub">到达阶段 ' + (state.stageIdx + 1) + ' · 连击最高 ' + state.maxCombo +
+        ' 连 · 擦边 ' + state.nearMiss + ' 次<br>最高分 ' + state.best +
+        ' · ' + DIFF[state.difficulty].label + '/' + MODES[state.mode].label + '</div>' +
         diffHtml() +
         '<button class="btn primary" type="button" data-act="start">再来一局</button>';
     } else if (kind === 'win') {
@@ -682,6 +989,11 @@
     var diffBtn = e.target.closest('[data-diff]');
     if (diffBtn) {
       setDifficulty(diffBtn.getAttribute('data-diff'));
+      return;
+    }
+    var modeBtn = e.target.closest('[data-mode]');
+    if (modeBtn) {
+      setMode(modeBtn.getAttribute('data-mode'));
       return;
     }
     var btn = e.target.closest('[data-act]');
@@ -1109,6 +1421,26 @@
     }
   }
 
+  // 擦边光环：一圈向外扩散的青色细环，很短、不抢戏
+  function drawNearFx() {
+    var now = performance.now();
+    for (var i = state.nearFx.length - 1; i >= 0; i--) {
+      var f = state.nearFx[i];
+      var k = (now - f.at) / 240;
+      if (k >= 1) { state.nearFx.splice(i, 1); continue; }
+      var cx = f.x * CELL + CELL / 2;
+      var cy = f.y * CELL + CELL / 2;
+      ctx.save();
+      ctx.globalAlpha = (1 - k) * 0.6;
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, CELL * 0.34 + k * CELL * 0.62, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   function updateParticles(dt) {
     var s = dt / 1000;
     for (var i = state.particles.length - 1; i >= 0; i--) {
@@ -1149,6 +1481,7 @@
     drawBonus(ts);
     drawParticles();
     drawSnake(t);
+    drawNearFx();
     drawFloaters();
     drawInvincibleBar();
     if (state.phase === 'over' && !state.win) {
@@ -1178,6 +1511,7 @@
 
     updateParticles(dt);
     updateFloaters(dt);
+    updateComboUI(ts);
 
     var t = 1;
     if (state.phase === 'playing' || state.phase === 'paused') {

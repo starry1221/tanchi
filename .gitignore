@@ -19,3 +19,9 @@ build/
 *.log
 npm-debug.log*
 .tmp/
+
+# 演示录像（体积大，不入库）
+*.webm
+*.mp4
+*.mov
+*.gif
