@@ -155,20 +155,21 @@
   }
   .btn.ghost:hover { background: #f6fafd; }
 
-  .bar { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .bar { display: flex; align-items: center; gap: 7px; margin-top: 12px; }
   .bar .btn { padding: 10px 18px; }
   .spacer { flex: 1; }
 
   /* 尺寸滑杆 */
   .sizer {
     display: flex; align-items: center; gap: 6px;
-    flex: 1 1 72px; min-width: 62px; max-width: 200px;
+    flex: 1 1 60px; min-width: 40px; max-width: 200px;
     padding: 0 2px; color: #93a2b8;
   }
   .sizer span { font-size: 12px; white-space: nowrap; }
   .sizer input[type="range"] {
     -webkit-appearance: none; appearance: none;
-    flex: 1; height: 4px; border-radius: 2px;
+    flex: 1 1 0; min-width: 0;   /* 范围输入默认 min-content 约 130px，不归零会在窄屏里溢出 */
+    height: 4px; border-radius: 2px;
     background: #dfe7f1; outline: none; cursor: pointer;
   }
   .sizer input[type="range"]::-webkit-slider-thumb {
@@ -189,15 +190,16 @@
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
     gap: 6px;
-    width: clamp(120px, 16vh, 160px);
-    height: clamp(120px, 16vh, 160px);
+    /* 每个键 ≈ 边长的三分之一；下限 150 => 单键 46px，手机上通常有 58~61px */
+    width: clamp(150px, 23vh, 216px);
+    height: clamp(150px, 23vh, 216px);
     margin: 10px auto 0;
     touch-action: none;
   }
   .dp-btn {
-    font: inherit; font-size: 17px; font-weight: 700; line-height: 1;
+    font: inherit; font-size: clamp(19px, 2.6vh, 24px); font-weight: 700; line-height: 1;
     color: #3c5a78; background: #fff;
-    border: 1px solid #e2eaf5; border-radius: 12px;
+    border: 1px solid #e2eaf5; border-radius: 14px;
     box-shadow: 0 2px 6px -3px rgba(23,48,84,.35);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; user-select: none; -webkit-user-select: none;
@@ -210,10 +212,10 @@
   .dp-down { grid-area: 3 / 2; }
   .dp-right { grid-area: 2 / 3; }
   .switch {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 12px; font-size: 12.5px; color: #62748f;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 10px; font-size: 12.5px; color: #62748f;
     background: #fff; border: 1px solid #e6ecf5; border-radius: 12px;
-    cursor: pointer; user-select: none;
+    cursor: pointer; user-select: none; white-space: nowrap;
     box-shadow: 0 1px 2px rgba(16,35,58,.04);
   }
   .switch input {
@@ -341,7 +343,7 @@
       position: fixed;
       right: max(12px, env(safe-area-inset-right));
       bottom: max(12px, env(safe-area-inset-bottom));
-      margin: 0; width: 126px; height: 126px; z-index: 5;
+      margin: 0; width: 146px; height: 146px; z-index: 5;
     }
   }
   /* 矮屏（手机横屏、小笔记本）时，底部提示挤占棋盘，直接隐藏 */
@@ -362,11 +364,18 @@
     .switch { padding: 6px 9px; }
   }
   /* 注意：这里要看「棋盘容器」的宽度，而不是窗口宽度。
-     横屏时窗口很宽但棋盘只有两百多，按窗口判断会导致底栏挤成两行 */
-  @container (max-width: 400px) {
-    .switch span { display: none; }
+     横屏时窗口很宽但棋盘只有两百多，按窗口判断会导致底栏挤成两行。
+     分两档：先省掉「尺寸」两字（滑杆本身看得懂），更窄才连开关文字一起省 */
+  @container (max-width: 340px) {
     .sizer span { display: none; }
     .sizer { max-width: none; }
+  }
+  @container (max-width: 380px) {
+    /* 省一点内边距，把空间让给滑杆，好让开关文字能保住 */
+    .switch { padding: 8px 8px; gap: 5px; }
+  }
+  @container (max-width: 296px) {
+    .switch span { display: none; }
   }
 </style>
 </head>
@@ -605,13 +614,25 @@
     var vp = viewportSize();
     var size = 0;
 
-    // 迭代两三次收敛：宽度一变，提示文字换行数也会变，进而影响可用高度
-    for (var i = 0; i < 3; i++) {
+    // 迭代收敛：宽度一变，提示文字换行数、容器查询命中的规则都会变，进而影响可用高度
+    for (var i = 0; i < 4; i++) {
       var availW = vp.w - padX;
       var availH = vp.h - chromeHeight() - padY;
-      var next = Math.round(Math.max(220, Math.min(availW, availH) * boardScale));
-      if (next === size) break;
+      var next = Math.max(220, Math.floor(Math.min(availW, availH) * boardScale));
+      if (Math.abs(next - size) <= 1) { break; }
       size = next;
+      document.documentElement.style.setProperty('--board', size + 'px');
+    }
+    if (!size) size = 220;
+    document.documentElement.style.setProperty('--board', size + 'px');
+
+    // 收尾校正：万一还有几像素溢出，按实际溢出量再收一次，保证不出现滚动条
+    for (var k = 0; k < 2; k++) {
+      var overY = document.documentElement.scrollHeight - vp.h;
+      var overX = document.documentElement.scrollWidth - vp.w;
+      var over = Math.max(overY, overX);
+      if (over <= 0 || size <= 220) break;
+      size = Math.max(220, size - over - 1);
       document.documentElement.style.setProperty('--board', size + 'px');
     }
     fitCanvas();
