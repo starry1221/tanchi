@@ -10,10 +10,16 @@
   html, body { height: 100%; }
   body {
     margin: 0;
-    padding: 16px;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+             max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
     min-height: 100%;
+    min-height: 100dvh;
     display: flex;
-    overflow-y: auto;
+    overflow: auto;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
     font-family: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     color: #16233a;
     background:
@@ -21,7 +27,13 @@
       radial-gradient(900px 520px at 112% 8%, #e2f8ee 0%, transparent 55%),
       #f2f6fb;
   }
-  .app { width: 100%; max-width: 480px; margin: auto; }
+  /* 尺寸由脚本按「窗口能放下多大」算出来写进 --board，滑杆再对它做缩放 */
+  .app {
+    width: 100%;
+    max-width: var(--board, 660px);
+    margin: auto;
+    container-type: inline-size;
+  }
 
   .title { display: flex; align-items: baseline; gap: 10px; margin: 0 2px 12px; }
   .title h1 { margin: 0; font-size: 19px; letter-spacing: .02em; }
@@ -50,12 +62,12 @@
   .stage {
     position: relative;
     width: 100%;
-    max-width: min(100%, 66vh);
     aspect-ratio: 1 / 1;
     margin: 0 auto;
     border-radius: 18px;
     overflow: hidden;
     background: #fff;
+    container-type: inline-size;
     box-shadow: 0 20px 44px -24px rgba(23,48,84,.5), 0 0 0 1px rgba(23,48,84,.07);
   }
   canvas { display: block; width: 100%; height: 100%; touch-action: none; }
@@ -72,26 +84,36 @@
   .overlay {
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 7px; padding: 22px; text-align: center;
+    align-items: center; justify-content: flex-start;
+    gap: 7px; padding: clamp(12px, 4cqw, 22px); text-align: center;
+    overflow-y: auto;
     background: rgba(250,252,255,.9);
     -webkit-backdrop-filter: blur(7px);
     backdrop-filter: blur(7px);
     transition: opacity .24s ease, visibility .24s;
   }
+  /* 内容少时垂直居中，内容多时可滚动而不会把顶部裁掉 */
+  .overlay > :first-child { margin-top: auto; }
+  .overlay > :last-child { margin-bottom: auto; }
   .overlay.hide { opacity: 0; visibility: hidden; pointer-events: none; }
-  .ov-title { font-size: 26px; font-weight: 800; letter-spacing: .04em; }
-  .ov-title.small { font-size: 21px; }
-  .ov-sub { font-size: 13px; color: #6b7d99; line-height: 1.7; max-width: 260px; }
-  .ov-score { font-size: 14px; color: #475671; }
-  .ov-score b { font-size: 24px; color: #10b981; font-variant-numeric: tabular-nums; }
+  .ov-title { font-size: clamp(17px, 5.6cqw, 26px); font-weight: 800; letter-spacing: .04em; }
+  .ov-title.small { font-size: clamp(15px, 4.6cqw, 21px); }
+  .ov-sub {
+    font-size: clamp(10.5px, 2.8cqw, 13px); color: #6b7d99;
+    line-height: 1.7; max-width: 80cqw;
+  }
+  .ov-score { font-size: clamp(11px, 3cqw, 14px); color: #475671; }
+  .ov-score b {
+    font-size: clamp(17px, 5.2cqw, 24px); color: #10b981;
+    font-variant-numeric: tabular-nums;
+  }
   .ov-tips {
-    margin-top: 6px; font-size: 11px; color: #8b9ab1;
+    margin-top: 6px; font-size: clamp(9.5px, 2.4cqw, 11px); color: #8b9ab1;
     letter-spacing: .04em; line-height: 1.8;
   }
   .ov-badge {
     display: inline-block; padding: 3px 10px; border-radius: 999px;
-    font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    font-size: clamp(9.5px, 2.4cqw, 11px); font-weight: 600; letter-spacing: .06em;
     background: #fff1f1; color: #d64545; border: 1px solid #ffdede;
   }
   .ov-badge.win { background: #ecfdf5; color: #059669; border-color: #c7f0e0; }
@@ -100,8 +122,8 @@
   .ov-pick-row { display: flex; align-items: center; justify-content: center; gap: 7px; flex-wrap: wrap; }
   .ov-pick-k { font-size: 10.5px; letter-spacing: .1em; color: #a3b0c4; }
   .pill {
-    font: inherit; font-size: 12.5px; font-weight: 500;
-    cursor: pointer; padding: 6px 14px; border-radius: 999px;
+    font: inherit; font-size: clamp(11px, 2.8cqw, 12.5px); font-weight: 500;
+    cursor: pointer; padding: 6px clamp(10px, 3cqw, 14px); border-radius: 999px;
     border: 1px solid #e6ecf5; background: #fff; color: #62748f;
     transition: border-color .18s, color .18s, background .18s, box-shadow .18s;
   }
@@ -111,7 +133,7 @@
     border-color: transparent; color: #fff;
     box-shadow: 0 6px 14px -8px rgba(16,185,129,.95);
   }
-  .ov-pick-tip { font-size: 11px; color: #93a2b8; min-height: 15px; line-height: 1.5; }
+  .ov-pick-tip { font-size: clamp(9.5px, 2.5cqw, 11px); color: #93a2b8; min-height: 15px; line-height: 1.5; }
 
   .btn {
     font: inherit; cursor: pointer; border: 1px solid transparent;
@@ -136,6 +158,57 @@
   .bar { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
   .bar .btn { padding: 10px 18px; }
   .spacer { flex: 1; }
+
+  /* 尺寸滑杆 */
+  .sizer {
+    display: flex; align-items: center; gap: 6px;
+    flex: 1 1 72px; min-width: 62px; max-width: 200px;
+    padding: 0 2px; color: #93a2b8;
+  }
+  .sizer span { font-size: 12px; white-space: nowrap; }
+  .sizer input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; height: 4px; border-radius: 2px;
+    background: #dfe7f1; outline: none; cursor: pointer;
+  }
+  .sizer input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; border: 2px solid #10b981;
+    box-shadow: 0 1px 3px rgba(16,35,58,.25);
+  }
+  .sizer input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; border: 2px solid #10b981;
+    box-shadow: 0 1px 3px rgba(16,35,58,.25);
+  }
+
+  /* ---------- 触屏方向键 ---------- */
+  .dpad {
+    display: none;                       /* 只有触屏设备才显示 */
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 6px;
+    width: clamp(120px, 16vh, 160px);
+    height: clamp(120px, 16vh, 160px);
+    margin: 10px auto 0;
+    touch-action: none;
+  }
+  .dp-btn {
+    font: inherit; font-size: 17px; font-weight: 700; line-height: 1;
+    color: #3c5a78; background: #fff;
+    border: 1px solid #e2eaf5; border-radius: 12px;
+    box-shadow: 0 2px 6px -3px rgba(23,48,84,.35);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .08s ease, background .12s, border-color .12s;
+  }
+  .dp-btn:active, .dp-btn.press { transform: scale(.93); background: #eaf7f1; border-color: #bfe9d8; }
+  .dp-up { grid-area: 1 / 2; }
+  .dp-left { grid-area: 2 / 1; }
+  .dp-down { grid-area: 3 / 2; }
+  .dp-right { grid-area: 2 / 3; }
   .switch {
     display: inline-flex; align-items: center; gap: 7px;
     padding: 9px 12px; font-size: 12.5px; color: #62748f;
@@ -225,9 +298,75 @@
     margin: 12px 2px 0; font-size: 11.5px; line-height: 1.7;
     color: #93a2b8; text-align: center;
   }
-  @media (max-width: 380px) {
-    .stat strong { font-size: 17px; }
+  /* ---------- 自适应 ---------- */
+  /* 棋盘变大时，标题与分数同比放大，免得显空 */
+  @container (min-width: 600px) {
+    .title h1 { font-size: 22px; }
+    .stat { padding: 11px 14px; }
+    .stat strong { font-size: 22px; }
+    .stat .label { font-size: 11px; }
+  }
+  /* 小屏：整体收紧 */
+  @container (max-width: 380px) {
+    .title { margin-bottom: 9px; }
+    .title h1 { font-size: 16px; }
+    .hud { gap: 6px; margin-bottom: 9px; }
+    .stat { padding: 7px 9px; }
+    .stat strong { font-size: 16px; }
+    .stat .label { font-size: 9px; letter-spacing: .08em; }
+    .combo { margin-bottom: 8px; }
+    .bar { gap: 6px; margin-top: 9px; }
+    .bar .btn { padding: 9px 14px; font-size: 13px; }
+    .switch { padding: 8px 10px; }
+  }
+
+  /* 棋盘本身很小时（横屏手机 / 用户把滑杆拉到底），面板只留必要信息 */
+  @container (max-width: 300px) {
+    .ov-sub, .ov-tips, .ov-pick-tip { display: none; }
+    .ov-score { font-size: 12px; }
+    .ov-badge { padding: 2px 8px; }
+  }
+
+  /* 触屏设备：换掉键盘提示，并亮出方向键 */
+  .touch-only { display: none; }
+  @media (hover: none) and (pointer: coarse) {
+    .desktop-only { display: none; }
+    .touch-only { display: inline; }
+    .dpad { display: grid; }
+    .hint { display: none; }        /* 有方向键了，这行提示可以省掉 */
+  }
+  /* 横屏手机：方向键浮在右下角空白处，不占布局高度 */
+  @media (hover: none) and (pointer: coarse) and (max-height: 560px) {
+    .dpad {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right));
+      bottom: max(12px, env(safe-area-inset-bottom));
+      margin: 0; width: 126px; height: 126px; z-index: 5;
+    }
+  }
+  /* 矮屏（手机横屏、小笔记本）时，底部提示挤占棋盘，直接隐藏 */
+  @media (max-height: 700px) {
+    .hint { display: none; }
+  }
+  /* 横屏手机：纵向空间极紧，把非必要的东西全压掉，保证棋盘放得下 */
+  @media (max-height: 560px) {
+    body { padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+    .title { display: none; }
+    .hud { gap: 6px; margin-bottom: 6px; }
+    .stat { padding: 5px 9px; border-radius: 10px; }
+    .stat strong { font-size: 15px; }
+    .stat .label { font-size: 8.5px; letter-spacing: .06em; }
+    .combo { height: 16px; margin: 0 2px 5px; font-size: 10.5px; }
+    .bar { margin-top: 6px; gap: 6px; }
+    .bar .btn { padding: 7px 12px; font-size: 12.5px; }
+    .switch { padding: 6px 9px; }
+  }
+  /* 注意：这里要看「棋盘容器」的宽度，而不是窗口宽度。
+     横屏时窗口很宽但棋盘只有两百多，按窗口判断会导致底栏挤成两行 */
+  @container (max-width: 400px) {
     .switch span { display: none; }
+    .sizer span { display: none; }
+    .sizer { max-width: none; }
   }
 </style>
 </head>
@@ -263,12 +402,25 @@
 
   <div class="bar">
     <button class="btn ghost" id="btn-toggle" type="button">开始</button>
-    <span class="spacer"></span>
+    <div class="sizer" title="调整棋盘大小">
+      <span>尺寸</span>
+      <input type="range" id="rng-size" min="55" max="100" step="5" value="100" aria-label="棋盘大小" />
+    </div>
     <label class="switch"><input type="checkbox" id="chk-wrap" /><span>穿墙</span></label>
     <label class="switch"><input type="checkbox" id="chk-sound" checked /><span>音效</span></label>
   </div>
 
-  <p class="hint">方向键 / WASD 转向 · 空格暂停 · R 重开 · 手机可滑动方向</p>
+  <div class="dpad" id="dpad">
+    <button type="button" class="dp-btn dp-up" data-dir="up" aria-label="上">↑</button>
+    <button type="button" class="dp-btn dp-left" data-dir="left" aria-label="左">←</button>
+    <button type="button" class="dp-btn dp-down" data-dir="down" aria-label="下">↓</button>
+    <button type="button" class="dp-btn dp-right" data-dir="right" aria-label="右">→</button>
+  </div>
+
+  <p class="hint">
+    <span class="desktop-only">方向键 / WASD 转向 · 空格暂停 · R 重开<br>拖动下方滑杆可调整棋盘大小</span>
+    <span class="touch-only">在棋盘上滑动转向 · 点按钮暂停<br>拖动下方滑杆可调整棋盘大小</span>
+  </p>
 </div>
 
 <script>
@@ -420,6 +572,62 @@
   } else {
     window.addEventListener('resize', fitCanvas);
   }
+
+  /* ---------- 自适应棋盘尺寸 ---------- */
+  var appEl = document.querySelector('.app');
+  var rngSize = document.getElementById('rng-size');
+  var BOARD_KEY = 'snake.board.v1';
+  var boardScale = 1;          // 0.55 ~ 1，滑杆控制
+
+  try {
+    var savedScale = Number(localStorage.getItem(BOARD_KEY));
+    if (savedScale >= 0.55 && savedScale <= 1) boardScale = savedScale;
+  } catch (e) {}
+  if (rngSize) rngSize.value = String(Math.round(boardScale * 100));
+
+  function viewportSize() {
+    var vv = window.visualViewport;
+    return {
+      w: (vv && vv.width) || window.innerWidth,
+      h: (vv && vv.height) || window.innerHeight
+    };
+  }
+
+  // 棋盘以外那些固定元素（标题 / HUD / 连击条 / 底栏 / 提示）占掉多少高度
+  function chromeHeight() {
+    return appEl.offsetHeight - stage.offsetHeight;
+  }
+
+  function fitBoard() {
+    var cs = getComputedStyle(document.body);
+    var padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    var padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    var vp = viewportSize();
+    var size = 0;
+
+    // 迭代两三次收敛：宽度一变，提示文字换行数也会变，进而影响可用高度
+    for (var i = 0; i < 3; i++) {
+      var availW = vp.w - padX;
+      var availH = vp.h - chromeHeight() - padY;
+      var next = Math.round(Math.max(220, Math.min(availW, availH) * boardScale));
+      if (next === size) break;
+      size = next;
+      document.documentElement.style.setProperty('--board', size + 'px');
+    }
+    fitCanvas();
+  }
+
+  if (rngSize) {
+    rngSize.addEventListener('input', function () {
+      boardScale = Math.max(0.55, Math.min(1, Number(rngSize.value) / 100));
+      try { localStorage.setItem(BOARD_KEY, String(boardScale)); } catch (e) {}
+      fitBoard();
+    });
+  }
+
+  window.addEventListener('resize', fitBoard);
+  window.addEventListener('orientationchange', function () { setTimeout(fitBoard, 160); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitBoard);
 
   /* ---------- 绘图工具 ---------- */
   function rrect(x, y, w, h, r) {
@@ -959,7 +1167,10 @@
         '<div class="ov-sub">5 秒内连吃叠倍率 · 贴障碍擦身加分 · 每 15 个苹果进一阶段</div>' +
         diffHtml() +
         '<button class="btn primary" type="button" data-act="start">开始游戏</button>' +
-        '<div class="ov-tips">方向键 / WASD · 空格暂停<br>无敌只挡障碍，撞墙照样结束</div>';
+        '<div class="ov-tips">' +
+          '<span class="desktop-only">方向键 / WASD · 空格暂停<br></span>' +
+          '<span class="touch-only">在棋盘上滑动转向 · 点按钮暂停<br></span>' +
+          '无敌只挡障碍，撞墙照样结束</div>';
     } else if (kind === 'paused') {
       overlay.innerHTML =
         '<div class="ov-title small">已暂停</div>' +
@@ -1048,26 +1259,65 @@
     if (state.phase === 'playing') pushDir(dx, dy);
   }, { passive: false });
 
+  /* ---------- 触摸滑动 ---------- */
   var touchStart = null;
+  var SWIPE_MIN = 22;          // 滑动多少像素算一次转向
+
+  function applySwipe(dx, dy) {
+    if (Math.abs(dx) > Math.abs(dy)) pushDir(dx > 0 ? 1 : -1, 0);
+    else pushDir(0, dy > 0 ? 1 : -1);
+  }
+
   stage.addEventListener('touchstart', function (e) {
     var t = e.changedTouches[0];
-    touchStart = { x: t.clientX, y: t.clientY };
+    touchStart = { x: t.clientX, y: t.clientY, moved: false };
   }, { passive: true });
+
+  // 拖到阈值就立刻转向，并把基准点挪到当前位置，手指不用抬起就能连续拐弯
+  stage.addEventListener('touchmove', function (e) {
+    if (!touchStart) return;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - touchStart.x;
+    var dy = t.clientY - touchStart.y;
+    if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) return;
+    e.preventDefault();
+    if (state.phase === 'idle') start();
+    if (state.phase === 'playing') applySwipe(dx, dy);
+    touchStart = { x: t.clientX, y: t.clientY, moved: true };
+  }, { passive: false });
 
   stage.addEventListener('touchend', function (e) {
     if (!touchStart) return;
     var t = e.changedTouches[0];
     var dx = t.clientX - touchStart.x;
     var dy = t.clientY - touchStart.y;
+    var moved = touchStart.moved;
     touchStart = null;
-    if (Math.abs(dx) < 18 && Math.abs(dy) < 18) {
-      if (state.phase === 'idle') start();
+    if (moved) return;                       // touchmove 里已经处理过
+    if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) {
+      if (state.phase === 'idle') start();   // 轻点开局
       return;
     }
-    if (state.phase !== 'playing') return;
-    if (Math.abs(dx) > Math.abs(dy)) pushDir(dx > 0 ? 1 : -1, 0);
-    else pushDir(0, dy > 0 ? 1 : -1);
+    if (state.phase === 'playing') applySwipe(dx, dy);
   }, { passive: true });
+
+  /* ---------- 屏幕方向键 ---------- */
+  var dpad = document.getElementById('dpad');
+  var DIR_VEC = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+  // 用 pointerdown 而不是 click：按下即转向，不用等手指抬起
+  dpad.addEventListener('pointerdown', function (e) {
+    var btn = e.target.closest('[data-dir]');
+    if (!btn) return;
+    e.preventDefault();
+    btn.classList.add('press');
+    setTimeout(function () { btn.classList.remove('press'); }, 110);
+
+    if (state.phase === 'idle') start();
+    if (state.phase !== 'playing') return;
+    var v = DIR_VEC[btn.getAttribute('data-dir')];
+    if (v) pushDir(v[0], v[1]);
+  });
 
   window.addEventListener('blur', function () {
     if (state.phase === 'playing') pause();
@@ -1522,6 +1772,7 @@
 
   /* ---------- 启动 ---------- */
   reset();
+  fitBoard();
   fitCanvas();
   showOverlay('idle');
   updateToggleBtn();
