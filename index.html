@@ -300,6 +300,84 @@
     margin: 12px 2px 0; font-size: 11.5px; line-height: 1.7;
     color: #93a2b8; text-align: center;
   }
+  /* ---------- 排行榜 ---------- */
+  /* 后端按 Origin 校验：只有本应用发布后的域名（以及本地调试）能访问。
+     所以入口默认隐藏，探测通了才显示，免得在别的域名下露出一个永远打不开的按钮 */
+  .lb-slot { display: none; }
+  body.lb-on .lb-link.lb-slot { display: inline; }
+  body.lb-on .lb-mine.lb-slot { display: flex; }
+
+  .lb-link {
+    font: inherit; font-size: clamp(10px, 2.6cqw, 12px);
+    color: #10b981; background: none; border: 0; padding: 4px 6px;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .lb-link:active { opacity: .6; }
+  .lb-mine {
+    align-items: center; justify-content: center; gap: 4px;
+    font-size: clamp(10px, 2.6cqw, 12px); color: #8b9ab1;
+  }
+
+  .sheet {
+    position: fixed; inset: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: center;
+    padding: 14px;
+    background: rgba(16,35,58,.4);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  }
+  .sheet[hidden] { display: none; }
+  .sheet-box {
+    width: min(100%, 400px);
+    max-height: min(82vh, 580px);
+    display: flex; flex-direction: column;
+    background: #fff; border-radius: 18px; overflow: hidden;
+    box-shadow: 0 26px 60px -26px rgba(16,35,58,.65);
+  }
+  .sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 6px;
+    font-size: 15px; font-weight: 700; color: #16233a;
+  }
+  .sheet-close {
+    border: 0; background: transparent; color: #93a2b8;
+    font-size: 22px; line-height: 1; padding: 2px 6px; cursor: pointer;
+  }
+  .sheet-tabs { display: flex; gap: 6px; padding: 0 16px 10px; }
+  .sheet-tabs .pill { font-size: 11.5px; padding: 5px 12px; }
+
+  .sheet-list { flex: 1; overflow-y: auto; padding: 0 10px 6px; -webkit-overflow-scrolling: touch; }
+  .lb-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 10px;
+    font-size: 13px; color: #3c4a60;
+  }
+  .lb-row:nth-child(odd) { background: #f7fafd; }
+  .lb-row.me { background: #ecfdf5; color: #065f46; font-weight: 600; }
+  .lb-rk { width: 24px; text-align: center; font-weight: 700; color: #b3bfd0; font-variant-numeric: tabular-nums; }
+  .lb-row.r1 .lb-rk { color: #f59e0b; }
+  .lb-row.r2 .lb-rk { color: #94a3b8; }
+  .lb-row.r3 .lb-rk { color: #c2814a; }
+  .lb-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-tag { font-size: 10px; color: #93a2b8; background: #eef3f9; border-radius: 6px; padding: 1px 5px; }
+  .lb-sc { font-weight: 700; font-variant-numeric: tabular-nums; color: #10b981; }
+  .lb-empty, .lb-loading {
+    padding: 26px 12px; text-align: center;
+    font-size: 12.5px; color: #93a2b8; line-height: 1.7;
+  }
+
+  .sheet-foot {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px 14px; border-top: 1px solid #eef2f8;
+  }
+  .sheet-foot input {
+    flex: 1; min-width: 0;
+    font: inherit; font-size: 13px; color: #16233a;
+    padding: 8px 10px; border: 1px solid #e2eaf5; border-radius: 10px;
+    background: #fafcff; outline: none;
+  }
+  .sheet-foot input:focus { border-color: #a7e3c8; background: #fff; }
+  .sheet-foot .btn { padding: 8px 14px; font-size: 12.5px; border-radius: 10px; }
+
   /* ---------- 自适应 ---------- */
   /* 棋盘变大时，标题与分数同比放大，免得显空 */
   @container (min-width: 600px) {
@@ -430,6 +508,23 @@
     <span class="desktop-only">方向键 / WASD 转向 · 空格暂停 · R 重开<br>拖动下方滑杆可调整棋盘大小</span>
     <span class="touch-only">在棋盘上滑动转向 · 点按钮暂停<br>拖动下方滑杆可调整棋盘大小</span>
   </p>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-box">
+    <div class="sheet-head">
+      <span>排行榜 · 前十</span>
+      <button class="sheet-close" type="button" data-sheet="close" aria-label="关闭">×</button>
+    </div>
+    <div class="sheet-tabs" id="sheet-tabs"></div>
+    <div class="sheet-list" id="sheet-list">
+      <div class="lb-loading">读取中…</div>
+    </div>
+    <div class="sheet-foot">
+      <input id="lb-name" type="text" maxlength="12" placeholder="留个名字" aria-label="你的名字" />
+      <button class="btn primary" type="button" data-sheet="save-name">改名</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1103,6 +1198,7 @@
     updateHUD();
     showOverlay(reason === 'win' ? 'win' : 'over');
     updateToggleBtn();
+    submitScore();
   }
 
   /* ---------- 状态切换 ---------- */
@@ -1149,6 +1245,210 @@
     }
   }
 
+  /* ---------- 排行榜（云数据库） ---------- */
+  var LB = {
+    endpoint: 'https://snake-83075.app.workbuddy.host',
+    publishableKey: 'wbpk_jV72OMgUlM9btdQfr4PUUY_8Bo1810muGzlbNbQnxoOrg3CtV78i3I2',
+    oauthRelayBaseUrl: 'https://www.workbuddy.cn/v2/as/genie-baas/oauth',
+    client: null,
+    sdkPromise: null
+  };
+  var NAME_KEY = 'snake.name.v1';
+  var playerName = '';
+  var sheetMode = 'classic';
+
+  try { playerName = localStorage.getItem(NAME_KEY) || ''; } catch (e) {}
+  if (!playerName) playerName = '匿名' + Math.floor(10 + Math.random() * 90);
+
+  // 用户输入的名字要清洗，渲染时也要转义，避免把 HTML 塞进榜单
+  function cleanName(v) {
+    return String(v || '').replace(/[<>&"']/g, '').replace(/\s+/g, ' ').trim().slice(0, 12);
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function loadSdk() {
+    if (window.WorkBuddyCloud) return Promise.resolve(window.WorkBuddyCloud);
+    if (LB.sdkPromise) return LB.sdkPromise;
+    LB.sdkPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'sdk.js';
+      s.onload = function () {
+        window.WorkBuddyCloud ? resolve(window.WorkBuddyCloud) : reject(new Error('sdk missing'));
+      };
+      s.onerror = function () { reject(new Error('sdk load error')); };
+      document.head.appendChild(s);
+    });
+    return LB.sdkPromise;
+  }
+
+  function cloud() {
+    if (LB.client) return Promise.resolve(LB.client);
+    return loadSdk().then(function (WB) {
+      LB.client = WB.createWorkBuddyCloud({
+        endpoint: LB.endpoint,
+        publishableKey: LB.publishableKey,
+        oauthRelayBaseUrl: LB.oauthRelayBaseUrl
+      });
+      return LB.client;
+    });
+  }
+
+  function lbSubmit(entry) {
+    return cloud()
+      .then(function (c) { return c.database.from('scores').insert(entry).select(); })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        return (r.data && r.data[0]) || null;
+      });
+  }
+
+  function lbTop(mode, limit) {
+    return cloud()
+      .then(function (c) {
+        return c.database.from('scores')
+          .select('name,score,difficulty,created_at')
+          .eq('mode', mode)
+          .order('score', { ascending: false })
+          .order('created_at', { ascending: true })
+          .limit(limit);
+      })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        return r.data || [];
+      });
+  }
+
+  function lbRank(mode, score) {
+    return cloud()
+      .then(function (c) {
+        return c.database.from('scores')
+          .select('id', { count: 'exact', head: true })
+          .eq('mode', mode)
+          .gt('score', score);
+      })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        return (r.count || 0) + 1;
+      });
+  }
+
+  // 探一下后端是否可达：只有能连上才显示排行榜入口
+  var lbReady = false;
+  function lbPing() {
+    lbTop('classic', 1)
+      .then(function () {
+        lbReady = true;
+        document.body.classList.add('lb-on');
+      })
+      .catch(function () { /* 连不上就保持隐藏 */ });
+  }
+
+  // 一局结束就把成绩写进榜（0 分不记）。
+  // 这里不依赖 lbPing 的结果：提交本身就是一次探测，成功后立刻把入口显示出来
+  function submitScore() {
+    if (state.score <= 0) {
+      setRankText('0 分不上榜');
+      return;
+    }
+    var entry = {
+      name: cleanName(playerName) || '匿名',
+      score: state.score,
+      apples: state.eatCount,
+      max_combo: state.maxCombo,
+      near_miss: state.nearMiss,
+      snake_len: state.snake.length,
+      mode: state.mode,
+      difficulty: state.difficulty
+    };
+    lbSubmit(entry)
+      .then(function () { return lbRank(state.mode, state.score); })
+      .then(function (rank) {
+        state.rank = rank;
+        lbReady = true;
+        document.body.classList.add('lb-on');
+        setRankText('第 <b>' + rank + '</b> 名');
+      })
+      .catch(function () { setRankText('排行榜暂时连不上'); });
+  }
+
+  function setRankText(html) {
+    var el = document.getElementById('ov-rank');
+    if (el && state.phase === 'over') el.innerHTML = html;
+  }
+
+  /* ---------- 榜单面板 ---------- */
+  var sheet = document.getElementById('sheet');
+  var sheetTabs = document.getElementById('sheet-tabs');
+  var sheetList = document.getElementById('sheet-list');
+  var nameInput = document.getElementById('lb-name');
+
+  function renderTabs() {
+    var html = '';
+    for (var i = 0; i < MODE_ORDER.length; i++) {
+      var key = MODE_ORDER[i];
+      html += '<button type="button" class="pill' + (key === sheetMode ? ' active' : '') +
+              '" data-sheet="mode" data-mode="' + key + '">' + MODES[key].label + '</button>';
+    }
+    sheetTabs.innerHTML = html;
+  }
+
+  function renderList() {
+    sheetList.innerHTML = '<div class="lb-loading">读取中…</div>';
+    lbTop(sheetMode, 10)
+      .then(function (rows) {
+        if (!rows.length) {
+          sheetList.innerHTML = '<div class="lb-empty">这个模式还没有人上榜<br>打一局，第一名就是你</div>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var mine = r.name === playerName ? ' me' : '';
+          html += '<div class="lb-row r' + (i + 1) + mine + '">' +
+                    '<span class="lb-rk">' + (i + 1) + '</span>' +
+                    '<span class="lb-name">' + esc(r.name) + '</span>' +
+                    '<span class="lb-tag">' + esc((DIFF[r.difficulty] || {}).label || '') + '</span>' +
+                    '<span class="lb-sc">' + Number(r.score || 0) + '</span>' +
+                  '</div>';
+        }
+        sheetList.innerHTML = html;
+      })
+      .catch(function () {
+        sheetList.innerHTML = '<div class="lb-empty">连不上排行榜<br>检查一下网络再试</div>';
+      });
+  }
+
+  function openSheet(mode) {
+    sheetMode = mode || state.mode;
+    if (nameInput) nameInput.value = playerName;
+    renderTabs();
+    renderList();
+    sheet.hidden = false;
+  }
+
+  function closeSheet() { sheet.hidden = true; }
+
+  sheet.addEventListener('click', function (e) {
+    if (e.target === sheet) { closeSheet(); return; }
+    var act = e.target.closest('[data-sheet]');
+    if (!act) return;
+    var kind = act.getAttribute('data-sheet');
+    if (kind === 'close') closeSheet();
+    else if (kind === 'mode') { sheetMode = act.getAttribute('data-mode'); renderTabs(); renderList(); }
+    else if (kind === 'save-name') {
+      var v = cleanName(nameInput.value);
+      if (!v) { nameInput.focus(); return; }
+      playerName = v;
+      try { localStorage.setItem(NAME_KEY, v); } catch (e) {}
+      act.textContent = '已保存';
+      setTimeout(function () { act.textContent = '改名'; }, 1200);
+    }
+  });
+
   /* ---------- overlay ---------- */
   function hideOverlay() { overlay.classList.add('hide'); }
 
@@ -1188,6 +1488,7 @@
         '<div class="ov-sub">5 秒内连吃叠倍率 · 贴障碍擦身加分 · 每 15 个苹果进一阶段</div>' +
         diffHtml() +
         '<button class="btn primary" type="button" data-act="start">开始游戏</button>' +
+        '<button class="lb-link lb-slot" type="button" data-act="board">查看排行榜</button>' +
         '<div class="ov-tips">' +
           '<span class="desktop-only">方向键 / WASD · 空格暂停<br></span>' +
           '<span class="touch-only">在棋盘上滑动转向 · 点按钮暂停<br></span>' +
@@ -1202,6 +1503,8 @@
         '<div class="ov-badge">' + (DEATH_TEXT[state.deathReason] || '撞到了') + '</div>' +
         '<div class="ov-title small">游戏结束</div>' +
         '<div class="ov-score">本局得分 <b>' + state.score + '</b></div>' +
+        '<div class="lb-mine lb-slot"><span id="ov-rank">提交中…</span> · ' +
+          '<button class="lb-link lb-slot" type="button" data-act="board">排行榜</button></div>' +
         '<div class="ov-sub">到达阶段 ' + (state.stageIdx + 1) + ' · 连击最高 ' + state.maxCombo +
         ' 连 · 擦边 ' + state.nearMiss + ' 次<br>最高分 ' + state.best +
         ' · ' + DIFF[state.difficulty].label + '/' + MODES[state.mode].label + '</div>' +
@@ -1212,6 +1515,8 @@
         '<div class="ov-badge win">满屏通关</div>' +
         '<div class="ov-title small">你填满了整个棋盘</div>' +
         '<div class="ov-score">得分 <b>' + state.score + '</b></div>' +
+        '<div class="lb-mine lb-slot"><span id="ov-rank">提交中…</span> · ' +
+          '<button class="lb-link lb-slot" type="button" data-act="board">排行榜</button></div>' +
         diffHtml() +
         '<button class="btn primary" type="button" data-act="start">再来一局</button>';
     }
@@ -1233,6 +1538,7 @@
     var act = btn.getAttribute('data-act');
     if (act === 'start') start();
     else if (act === 'resume') resume();
+    else if (act === 'board') openSheet(state.mode);
   });
 
   btnToggle.addEventListener('click', togglePause);
@@ -1257,6 +1563,11 @@
   }
 
   window.addEventListener('keydown', function (e) {
+    // 榜单打开时，按键不要传给游戏（否则在输入框里打字会触发重开）
+    if (!sheet.hidden) {
+      if (e.key === 'Escape') { closeSheet(); e.preventDefault(); }
+      return;
+    }
     var k = e.key;
     if (k === ' ' || k === 'Spacebar' || e.code === 'Space') {
       e.preventDefault();
@@ -1797,6 +2108,7 @@
   fitCanvas();
   showOverlay('idle');
   updateToggleBtn();
+  setTimeout(lbPing, 700);
   requestAnimationFrame(loop);
 })();
 </script>
